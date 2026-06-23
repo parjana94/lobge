@@ -15,6 +15,7 @@ export default function Catalog() {
 
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [search, setSearch] = useState("");
+  const [mobileCategoryOpen, setMobileCategoryOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -39,6 +40,17 @@ export default function Catalog() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (!mobileCategoryOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileCategoryOpen]);
 
   const categoryMap = useMemo(() => {
     return new Map(
@@ -74,6 +86,11 @@ export default function Catalog() {
   const clearFilters = () => {
     setSelectedCategory("all");
     setSearch("");
+  };
+
+  const selectCategory = (categoryId) => {
+    setSelectedCategory(categoryId);
+    setMobileCategoryOpen(false);
   };
 
   const activeCategoryName =
@@ -164,6 +181,15 @@ export default function Catalog() {
             კატეგორიები
           </div>
 
+          <button
+            type="button"
+            className="catalog-mobile-category-trigger"
+            onClick={() => setMobileCategoryOpen(true)}
+          >
+            <span>კატეგორიები</span>
+            <strong>{activeCategoryName}</strong>
+          </button>
+
           <div className="catalog-filters">
             <button
               type="button"
@@ -172,7 +198,7 @@ export default function Catalog() {
                   ? "catalog-filter-button--active"
                   : ""
               }`}
-              onClick={() => setSelectedCategory("all")}
+              onClick={() => selectCategory("all")}
             >
               ყველა პროდუქტი
             </button>
@@ -186,13 +212,75 @@ export default function Catalog() {
                     ? "catalog-filter-button--active"
                     : ""
                 }`}
-                onClick={() => setSelectedCategory(category.id)}
+                onClick={() => selectCategory(category.id)}
               >
                 {category.name}
               </button>
             ))}
           </div>
         </section>
+
+        {mobileCategoryOpen && (
+          <div
+            className="catalog-category-drawer-shell"
+            role="presentation"
+          >
+            <button
+              type="button"
+              className="catalog-category-drawer-overlay"
+              aria-label="კატეგორიების დახურვა"
+              onClick={() => setMobileCategoryOpen(false)}
+            />
+
+            <aside
+              className="catalog-category-drawer"
+              aria-label="კატეგორიები"
+            >
+              <div className="catalog-category-drawer__header">
+                <div>
+                  <p>ფილტრი</p>
+                  <h2>კატეგორიები</h2>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setMobileCategoryOpen(false)}
+                >
+                  დახურვა
+                </button>
+              </div>
+
+              <div className="catalog-category-drawer__list">
+                <button
+                  type="button"
+                  className={`catalog-category-drawer__option ${
+                    selectedCategory === "all"
+                      ? "catalog-category-drawer__option--active"
+                      : ""
+                  }`}
+                  onClick={() => selectCategory("all")}
+                >
+                  ყველა პროდუქტი
+                </button>
+
+                {categories.map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    className={`catalog-category-drawer__option ${
+                      selectedCategory === category.id
+                        ? "catalog-category-drawer__option--active"
+                        : ""
+                    }`}
+                    onClick={() => selectCategory(category.id)}
+                  >
+                    {category.name}
+                  </button>
+                ))}
+              </div>
+            </aside>
+          </div>
+        )}
 
         {error && (
           <div className="catalog-error">
