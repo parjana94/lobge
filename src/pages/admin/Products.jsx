@@ -23,6 +23,7 @@ const createEmptyForm = () => ({
   image4: "",
   categoryId: "",
   featured: false,
+  seasonal: false,
 });
 
 export default function Products() {
@@ -56,7 +57,7 @@ export default function Products() {
       setCategories(categoryData);
     } catch (err) {
       console.error(err);
-      setError("Unable to load products. Please try again.");
+      setError("პროდუქტების ჩატვირთვა ვერ მოხერხდა.");
     } finally {
       setLoading(false);
     }
@@ -69,28 +70,27 @@ export default function Products() {
   const getCategoryName = (categoryId) => {
     return (
       categories.find((category) => category.id === categoryId)?.name ||
-      "No category"
+      "კატეგორიის გარეშე"
     );
   };
 
-  const totalProducts = products.length;
   const featuredCount = products.filter((product) => product.featured).length;
-  const activeListings = products.filter(
-    (product) => product.name && product.mainImage
+
+  const seasonalCount = products.filter(
+    (product) => product.seasonal
   ).length;
 
   const filteredProducts = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
+    const query = search.trim().toLowerCase();
 
     return products.filter((product) => {
       const categoryName = getCategoryName(product.categoryId).toLowerCase();
 
       const matchesSearch =
-        !normalizedSearch ||
-        product.name?.toLowerCase().includes(normalizedSearch) ||
-        product.fullDescription?.toLowerCase().includes(normalizedSearch) ||
-        product.shortDescription?.toLowerCase().includes(normalizedSearch) ||
-        categoryName.includes(normalizedSearch);
+        !query ||
+        product.name?.toLowerCase().includes(query) ||
+        product.fullDescription?.toLowerCase().includes(query) ||
+        categoryName.includes(query);
 
       const matchesCategory =
         !selectedCategory || product.categoryId === selectedCategory;
@@ -102,7 +102,7 @@ export default function Products() {
 
       return matchesSearch && matchesCategory && matchesFeatured;
     });
-  }, [products, categories, search, selectedCategory, featuredFilter]);
+  }, [products, search, selectedCategory, featuredFilter, categories]);
 
   const openAdd = () => {
     setEditMode(false);
@@ -111,24 +111,24 @@ export default function Products() {
   };
 
   const openEdit = (product) => {
-    const existingImages = Array.isArray(product.images)
-      ? product.images.filter(
-          (image) => image && image !== product.mainImage
-        )
+    const additionalImages = Array.isArray(product.images)
+      ? product.images.filter((image) => image && image !== product.mainImage)
       : [];
 
     setEditMode(true);
+
     setForm({
       id: product.id,
       name: product.name || "",
       fullDescription: product.fullDescription || "",
       mainImage: product.mainImage || "",
-      image1: existingImages[0] || "",
-      image2: existingImages[1] || "",
-      image3: existingImages[2] || "",
-      image4: existingImages[3] || "",
+      image1: additionalImages[0] || "",
+      image2: additionalImages[1] || "",
+      image3: additionalImages[2] || "",
+      image4: additionalImages[3] || "",
       categoryId: product.categoryId || "",
       featured: Boolean(product.featured),
+      seasonal: Boolean(product.seasonal),
     });
 
     setOpen(true);
@@ -147,11 +147,11 @@ export default function Products() {
     const mainImage = form.mainImage.trim();
 
     if (!name || !mainImage) {
-      window.alert("Please fill in Product Name and Main Image URL.");
+      alert("შეავსე პროდუქტის სახელი და მთავარი ფოტოს ბმული.");
       return;
     }
 
-    const additionalImages = [
+    const images = [
       form.image1,
       form.image2,
       form.image3,
@@ -164,9 +164,10 @@ export default function Products() {
       name,
       fullDescription: form.fullDescription.trim(),
       mainImage,
-      images: additionalImages,
+      images,
       categoryId: form.categoryId || null,
       featured: Boolean(form.featured),
+      seasonal: Boolean(form.seasonal),
     };
 
     setSaving(true);
@@ -182,24 +183,24 @@ export default function Products() {
       await load();
     } catch (err) {
       console.error(err);
-      window.alert("Unable to save product. Please try again.");
+      alert("პროდუქტის შენახვა ვერ მოხერხდა.");
     } finally {
       setSaving(false);
     }
   };
 
-  const toggleFeatured = async (product) => {
+  const toggleSeasonal = async (product) => {
     setBusyProductId(product.id);
 
     try {
       await updateProduct(product.id, {
-        featured: !product.featured,
+        seasonal: !product.seasonal,
       });
 
       await load();
     } catch (err) {
       console.error(err);
-      window.alert("Unable to update featured status.");
+      alert("პროდუქტის სტატუსის შეცვლა ვერ მოხერხდა.");
     } finally {
       setBusyProductId("");
     }
@@ -207,7 +208,7 @@ export default function Products() {
 
   const handleDelete = async (product) => {
     const confirmed = window.confirm(
-      `Delete "${product.name}" permanently?`
+      `წავშალოთ პროდუქტი "${product.name}"?`
     );
 
     if (!confirmed) return;
@@ -219,30 +220,20 @@ export default function Products() {
       await load();
     } catch (err) {
       console.error(err);
-      window.alert("Unable to delete product.");
+      alert("პროდუქტის წაშლა ვერ მოხერხდა.");
     } finally {
       setBusyProductId("");
     }
   };
 
-  const clearFilters = () => {
-    setSearch("");
-    setSelectedCategory("");
-    setFeaturedFilter("all");
-  };
-
-  const hasActiveFilters =
-    search || selectedCategory || featuredFilter !== "all";
-
   return (
     <section className="products-page">
       <header className="products-page__header">
         <div>
-          <p className="products-page__eyebrow">Inventory control</p>
-          <h1 className="products-page__title">Product Management</h1>
+          <p className="products-page__eyebrow">ინვენტარის მართვა</p>
+          <h1 className="products-page__title">პროდუქტები</h1>
           <p className="products-page__subtitle">
-            Manage products, categories, featured listings and catalogue
-            visibility from one place.
+            დაამატე, დაარედაქტირე და მონიშნე აქტუალური პროდუქტები.
           </p>
         </div>
 
@@ -251,33 +242,33 @@ export default function Products() {
           className="products-button products-button--primary"
           onClick={openAdd}
         >
-          + Add product
+          + პროდუქტის დამატება
         </button>
       </header>
 
       <section className="products-stats">
         <article className="products-stat-card">
-          <span>Total products</span>
-          <strong>{totalProducts}</strong>
-          <small>All catalogue items</small>
+          <span>სულ პროდუქტი</span>
+          <strong>{products.length}</strong>
+          <small>კატალოგში არსებული პროდუქცია</small>
         </article>
 
         <article className="products-stat-card">
-          <span>Featured</span>
+          <span>მთავარ გვერდზე</span>
           <strong>{featuredCount}</strong>
-          <small>Shown on the homepage</small>
+          <small>რჩეული პროდუქტები</small>
         </article>
 
         <article className="products-stat-card">
-          <span>Categories</span>
+          <span>მოთხოვნადი</span>
+          <strong>{seasonalCount}</strong>
+          <small>ამ დროისთვის აქტუალური</small>
+        </article>
+
+        <article className="products-stat-card">
+          <span>კატეგორიები</span>
           <strong>{categories.length}</strong>
-          <small>Available product groups</small>
-        </article>
-
-        <article className="products-stat-card">
-          <span>Active listings</span>
-          <strong>{activeListings}</strong>
-          <small>Products with name and image</small>
+          <small>პროდუქტის ჯგუფები</small>
         </article>
       </section>
 
@@ -285,7 +276,7 @@ export default function Products() {
         <input
           className="products-control"
           type="search"
-          placeholder="Search products, descriptions or categories..."
+          placeholder="მოძებნე პროდუქტი..."
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
@@ -295,7 +286,8 @@ export default function Products() {
           value={selectedCategory}
           onChange={(event) => setSelectedCategory(event.target.value)}
         >
-          <option value="">All categories</option>
+          <option value="">ყველა კატეგორია</option>
+
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
               {category.name}
@@ -308,69 +300,67 @@ export default function Products() {
           value={featuredFilter}
           onChange={(event) => setFeaturedFilter(event.target.value)}
         >
-          <option value="all">All products</option>
-          <option value="featured">Featured only</option>
-          <option value="normal">Not featured</option>
+          <option value="all">ყველა პროდუქტი</option>
+          <option value="featured">მთავარ გვერდზე</option>
+          <option value="normal">არ არის მთავარ გვერდზე</option>
         </select>
-
-        {hasActiveFilters && (
-          <button
-            type="button"
-            className="products-button products-button--secondary"
-            onClick={clearFilters}
-          >
-            Clear filters
-          </button>
-        )}
       </section>
 
       <div className="products-page__result-count">
-        Showing {filteredProducts.length} of {products.length} products
+        ნაჩვენებია {filteredProducts.length} / {products.length} პროდუქტი
       </div>
 
       {error && (
         <div className="products-error">
           <span>{error}</span>
+
           <button type="button" onClick={load}>
-            Try again
+            თავიდან ცდა
           </button>
         </div>
       )}
 
       {loading ? (
-        <div className="products-loading">Loading products...</div>
+        <div className="products-loading">პროდუქტები იტვირთება...</div>
       ) : (
         <>
           <div className="products-grid">
             {filteredProducts.map((product) => {
-              const category = getCategoryName(product.categoryId);
               const isBusy = busyProductId === product.id;
 
               return (
                 <article key={product.id} className="product-card">
                   <div className="product-card__image-wrap">
                     <div className="product-card__image-fallback">
-                      No image
+                      ფოტო არ არის
                     </div>
 
                     {product.mainImage && (
                       <img
-                        className="product-card__image"
                         src={product.mainImage}
                         alt={product.name}
+                        className="product-card__image"
                         onError={(event) => {
                           event.currentTarget.style.display = "none";
                         }}
                       />
                     )}
 
-                    <div className="product-card__badges">
-                      {product.featured && (
-                        <span className="product-card__badge product-card__badge--featured">
-                          ★ Featured
-                        </span>
-                      )}
-                    </div>
+                    {(product.featured || product.seasonal) && (
+                      <div className="product-card__badges">
+                        {product.featured && (
+                          <span className="product-card__badge product-card__badge--featured">
+                            მთავარ გვერდზე
+                          </span>
+                        )}
+
+                        {product.seasonal && (
+                          <span className="product-card__badge product-card__badge--featured">
+                            მოთხოვნადი
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="product-card__body">
@@ -383,14 +373,13 @@ export default function Products() {
                       </Link>
 
                       <span className="product-card__category">
-                        {category}
+                        {getCategoryName(product.categoryId)}
                       </span>
                     </div>
 
                     <p className="product-card__description">
                       {product.fullDescription ||
-                        product.shortDescription ||
-                        "No description available."}
+                        "აღწერა ჯერ არ არის დამატებული."}
                     </p>
 
                     <footer className="product-card__footer">
@@ -400,16 +389,18 @@ export default function Products() {
                         onClick={() => openEdit(product)}
                         disabled={isBusy}
                       >
-                        Edit
+                        რედაქტირება
                       </button>
 
                       <button
                         type="button"
                         className="products-button products-button--secondary"
-                        onClick={() => toggleFeatured(product)}
+                        onClick={() => toggleSeasonal(product)}
                         disabled={isBusy}
                       >
-                        {product.featured ? "Unfeature" : "Feature"}
+                        {product.seasonal
+                          ? "მოთხოვნადიდან ამოღება"
+                          : "მოთხოვნადი"}
                       </button>
 
                       <button
@@ -418,7 +409,7 @@ export default function Products() {
                         onClick={() => handleDelete(product)}
                         disabled={isBusy}
                       >
-                        Delete
+                        წაშლა
                       </button>
                     </footer>
                   </div>
@@ -429,51 +420,28 @@ export default function Products() {
 
           {filteredProducts.length === 0 && (
             <div className="products-empty">
-              <h2>No products found</h2>
-              <p>Change the filters or add a new product.</p>
-
-              {hasActiveFilters ? (
-                <button
-                  type="button"
-                  className="products-button products-button--secondary"
-                  onClick={clearFilters}
-                >
-                  Clear filters
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="products-button products-button--primary"
-                  onClick={openAdd}
-                >
-                  + Add first product
-                </button>
-              )}
+              <h2>პროდუქტი ვერ მოიძებნა</h2>
+              <p>შეცვალე ძებნის ტექსტი ან დაამატე ახალი პროდუქტი.</p>
             </div>
           )}
         </>
       )}
 
       {open && (
-        <div
-          className="products-modal-backdrop"
-          onMouseDown={closeModal}
-        >
+        <div className="products-modal-backdrop" onMouseDown={closeModal}>
           <div
             className="products-modal"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="product-modal-title"
             onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="products-modal__header">
               <div>
                 <p className="products-page__eyebrow">
-                  {editMode ? "Update item" : "New listing"}
+                  {editMode ? "პროდუქტის განახლება" : "ახალი პროდუქტი"}
                 </p>
-                <h2 id="product-modal-title">
-                  {editMode ? "Edit Product" : "Add Product"}
-                </h2>
+
+                <h2>{editMode ? "პროდუქტის რედაქტირება" : "პროდუქტის დამატება"}</h2>
               </div>
 
               <button
@@ -481,7 +449,6 @@ export default function Products() {
                 className="products-modal__close"
                 onClick={closeModal}
                 disabled={saving}
-                aria-label="Close modal"
               >
                 ×
               </button>
@@ -490,44 +457,42 @@ export default function Products() {
             <form onSubmit={handleSave}>
               <div className="products-form__grid">
                 <label className="products-form__field">
-                  <span>Product name *</span>
+                  <span>პროდუქტის სახელი *</span>
+
                   <input
                     type="text"
                     value={form.name}
                     onChange={(event) =>
                       setForm({ ...form, name: event.target.value })
                     }
-                    placeholder="Product name"
+                    placeholder="პროდუქტის სახელი"
                   />
                 </label>
 
                 <label className="products-form__field">
-                  <span>Main image URL *</span>
+                  <span>მთავარი ფოტო *</span>
+
                   <input
                     type="url"
                     value={form.mainImage}
                     onChange={(event) =>
-                      setForm({
-                        ...form,
-                        mainImage: event.target.value,
-                      })
+                      setForm({ ...form, mainImage: event.target.value })
                     }
                     placeholder="https://..."
                   />
                 </label>
 
                 <label className="products-form__field">
-                  <span>Category</span>
+                  <span>კატეგორია</span>
+
                   <select
                     value={form.categoryId}
                     onChange={(event) =>
-                      setForm({
-                        ...form,
-                        categoryId: event.target.value,
-                      })
+                      setForm({ ...form, categoryId: event.target.value })
                     }
                   >
-                    <option value="">Select category</option>
+                    <option value="">აირჩიე კატეგორია</option>
+
                     {categories.map((category) => (
                       <option key={category.id} value={category.id}>
                         {category.name}
@@ -547,24 +512,29 @@ export default function Products() {
                       })
                     }
                   />
-                  <span>Show on homepage as featured</span>
+
+                  <span>გამოჩნდეს მთავარ გვერდზე</span>
+                </label>
+
+                <label className="products-form__checkbox">
+                  <input
+                    type="checkbox"
+                    checked={form.seasonal}
+                    onChange={(event) =>
+                      setForm({
+                        ...form,
+                        seasonal: event.target.checked,
+                      })
+                    }
+                  />
+
+                  <span>მოთხოვნადი პროდუქტი</span>
                 </label>
               </div>
 
-              {form.mainImage && (
-                <div className="products-form__preview">
-                  <img
-                    src={form.mainImage}
-                    alt="Main product preview"
-                    onError={(event) => {
-                      event.currentTarget.style.display = "none";
-                    }}
-                  />
-                </div>
-              )}
-
               <label className="products-form__field products-form__field--full">
-                <span>Full description</span>
+                <span>სრული აღწერა</span>
+
                 <textarea
                   rows="5"
                   value={form.fullDescription}
@@ -574,7 +544,7 @@ export default function Products() {
                       fullDescription: event.target.value,
                     })
                   }
-                  placeholder="Describe the product in detail..."
+                  placeholder="პროდუქტის სრული აღწერა..."
                 />
               </label>
 
@@ -582,7 +552,8 @@ export default function Products() {
                 {["image1", "image2", "image3", "image4"].map(
                   (field, index) => (
                     <label key={field} className="products-form__field">
-                      <span>Additional image {index + 1}</span>
+                      <span>დამატებითი ფოტო {index + 1}</span>
+
                       <input
                         type="url"
                         value={form[field]}
@@ -606,7 +577,7 @@ export default function Products() {
                   onClick={closeModal}
                   disabled={saving}
                 >
-                  Cancel
+                  გაუქმება
                 </button>
 
                 <button
@@ -615,10 +586,10 @@ export default function Products() {
                   disabled={saving}
                 >
                   {saving
-                    ? "Saving..."
+                    ? "ინახება..."
                     : editMode
-                    ? "Save changes"
-                    : "Add product"}
+                    ? "ცვლილებების შენახვა"
+                    : "პროდუქტის დამატება"}
                 </button>
               </div>
             </form>

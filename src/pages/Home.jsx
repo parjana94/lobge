@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { getProducts } from "../firebase/products";
@@ -19,15 +19,9 @@ export default function Home() {
       try {
         const data = await getProducts();
 
-        if (!mounted) return;
-
-        const featuredProducts = data.filter((product) => product.featured);
-
-        setProducts(
-          featuredProducts.length > 0
-            ? featuredProducts.slice(0, 4)
-            : data.slice(0, 4)
-        );
+        if (mounted) {
+          setProducts(data);
+        }
       } catch (error) {
         console.error(error);
 
@@ -47,6 +41,64 @@ export default function Home() {
       mounted = false;
     };
   }, []);
+
+  const seasonalProducts = useMemo(() => {
+    return products.filter((product) => product.seasonal).slice(0, 4);
+  }, [products]);
+
+  const featuredProducts = useMemo(() => {
+    const selected = products.filter((product) => product.featured);
+
+    if (selected.length > 0) {
+      return selected.slice(0, 4);
+    }
+
+    return products.slice(0, 4);
+  }, [products]);
+
+  const renderProductCards = (items) => {
+    return (
+      <div className="home-products-grid">
+        {items.map((product) => (
+          <Link
+            key={product.id}
+            to={`/product/${product.id}`}
+            className="home-product-card"
+          >
+            <div className="home-product-card__image-wrap">
+              <div className="home-product-card__fallback">
+                ფოტო არ არის
+              </div>
+
+              {product.mainImage && (
+                <img
+                  src={product.mainImage}
+                  alt={product.name}
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                  }}
+                />
+              )}
+            </div>
+
+            <div className="home-product-card__body">
+              <h3>{product.name || "პროდუქტი"}</h3>
+
+              <p>
+                {product.fullDescription ||
+                  "იხილე პროდუქტის სრული აღწერა და დამატებითი ფოტოები."}
+              </p>
+
+              <div>
+                <span>დეტალურად</span>
+                <span>→</span>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <main className="home-page">
@@ -108,69 +160,58 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="home-products">
-        <div className="home-container">
-          <div className="home-section-header">
-            <div>
-              <p className="home-eyebrow">კატალოგიდან</p>
-              <h2>რჩეული პროდუქტები</h2>
-            </div>
-
-            <Link to="/catalog" className="home-all-link">
-              ყველა პროდუქტი →
-            </Link>
-          </div>
-
-          {loading ? (
+      {loading ? (
+        <section className="home-products">
+          <div className="home-container">
             <div className="home-state">პროდუქტები იტვირთება...</div>
-          ) : products.length > 0 ? (
-            <div className="home-products-grid">
-              {products.map((product) => (
-                <Link
-                  key={product.id}
-                  to={`/product/${product.id}`}
-                  className="home-product-card"
-                >
-                  <div className="home-product-card__image-wrap">
-                    <div className="home-product-card__fallback">
-                      ფოტო არ არის
-                    </div>
-
-                    {product.mainImage && (
-                      <img
-                        src={product.mainImage}
-                        alt={product.name}
-                        onError={(event) => {
-                          event.currentTarget.style.display = "none";
-                        }}
-                      />
-                    )}
+          </div>
+        </section>
+      ) : (
+        <>
+          {seasonalProducts.length > 0 && (
+            <section className="home-products">
+              <div className="home-container">
+                <div className="home-section-header">
+                  <div>
+                    <p className="home-eyebrow">ამ სეზონის არჩევანი</p>
+                    <h2>მოთხოვნადი პროდუქტები</h2>
                   </div>
 
-                  <div className="home-product-card__body">
-                    <h3>{product.name || "პროდუქტი"}</h3>
+                  <Link to="/catalog" className="home-all-link">
+                    ყველა პროდუქტი →
+                  </Link>
+                </div>
 
-                    <p>
-                      {product.fullDescription ||
-                        "იხილე პროდუქტის სრული აღწერა და დამატებითი ფოტოები."}
-                    </p>
-
-                    <div>
-                      <span>დეტალურად</span>
-                      <span>→</span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="home-state">
-              <h3>პროდუქტები ჯერ არ არის დამატებული</h3>
-              <p>დაამატე პროდუქტი Admin Panel-იდან.</p>
-            </div>
+                {renderProductCards(seasonalProducts)}
+              </div>
+            </section>
           )}
-        </div>
-      </section>
+
+          <section className="home-products">
+            <div className="home-container">
+              <div className="home-section-header">
+                <div>
+                  <p className="home-eyebrow">კატალოგიდან</p>
+                  <h2>რჩეული პროდუქტები</h2>
+                </div>
+
+                <Link to="/catalog" className="home-all-link">
+                  ყველა პროდუქტი →
+                </Link>
+              </div>
+
+              {featuredProducts.length > 0 ? (
+                renderProductCards(featuredProducts)
+              ) : (
+                <div className="home-state">
+                  <h3>პროდუქტები ჯერ არ არის დამატებული</h3>
+                  <p>დაამატე პროდუქტი Admin Panel-იდან.</p>
+                </div>
+              )}
+            </div>
+          </section>
+        </>
+      )}
 
       <section className="home-contact">
         <div className="home-container">
@@ -178,6 +219,7 @@ export default function Home() {
             <div>
               <p className="home-eyebrow">დაგვიკავშირდი</p>
               <h2>გაინტერესებს კონკრეტული პროდუქტი?</h2>
+
               <span>
                 დაგვირეკე და მიიღე დამატებითი ინფორმაცია პროდუქციის შესახებ.
               </span>

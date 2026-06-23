@@ -224,13 +224,6 @@ export default function Catalog() {
                           />
                         )}
                       </div>
-
-                      {product.featured && (
-                        <span className="catalog-product-card__featured">
-                          <span className="catalog-product-card__featured-dot" />
-                          რჩეული
-                        </span>
-                      )}
                     </div>
 
                     <div className="catalog-product-card__body">
@@ -262,9 +255,7 @@ export default function Catalog() {
               <div className="catalog-empty">
                 <h2>პროდუქტი ვერ მოიძებნა</h2>
 
-                <p>
-                  შეცვალე ძებნის ტექსტი ან აირჩიე სხვა კატეგორია.
-                </p>
+                <p>შეცვალე ძებნის ტექსტი ან აირჩიე სხვა კატეგორია.</p>
 
                 <button
                   type="button"
