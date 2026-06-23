@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 
 import Login from "./pages/admin/Login";
 import Products from "./pages/admin/Products";
@@ -18,15 +18,12 @@ function App() {
       <ScrollToTop />
 
       <Routes>
-        {/* Public pages */}
         <Route path="/" element={<Home />} />
         <Route path="/catalog" element={<Catalog />} />
         <Route path="/product/:id" element={<ProductDetail />} />
 
-        {/* Admin login */}
         <Route path="/admin/login" element={<Login />} />
 
-        {/* Admin panel */}
         <Route
           path="/admin"
           element={
@@ -35,6 +32,7 @@ function App() {
             </ProtectedRoute>
           }
         >
+          <Route index element={<Navigate to="products" replace />} />
           <Route path="products" element={<Products />} />
           <Route path="categories" element={<Categories />} />
         </Route>
