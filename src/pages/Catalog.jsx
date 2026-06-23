@@ -84,6 +84,17 @@ export default function Catalog() {
   return (
     <main className="catalog-page">
       <section className="catalog-container">
+        <nav className="catalog-top-nav" aria-label="ძირითადი ნავიგაცია">
+          <Link to="/" className="catalog-top-nav__brand">
+            LOBGE
+          </Link>
+
+          <div className="catalog-top-nav__links">
+            <Link to="/">მთავარი</Link>
+            <span aria-current="page">კატალოგი</span>
+          </div>
+        </nav>
+
         <header className="catalog-hero">
           <div className="catalog-hero__watermark">LOBGE</div>
 

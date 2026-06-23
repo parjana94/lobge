@@ -207,9 +207,15 @@ export default function ProductDetail() {
   return (
     <main className="product-detail-page">
       <section className="product-detail-container">
-        <Link to="/catalog" className="product-detail-back">
-          ← კატალოგში დაბრუნება
-        </Link>
+        <nav className="product-detail-nav" aria-label="პროდუქტის ნავიგაცია">
+          <Link to="/" className="product-detail-nav__link">
+            მთავარზე
+          </Link>
+
+          <Link to="/catalog" className="product-detail-nav__link">
+            ← კატალოგში დაბრუნება
+          </Link>
+        </nav>
 
         <section className="product-detail-hero">
           <div className="product-detail-left-column">
