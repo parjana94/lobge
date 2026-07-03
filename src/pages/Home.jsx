@@ -47,13 +47,7 @@ export default function Home() {
   }, [products]);
 
   const featuredProducts = useMemo(() => {
-    const selected = products.filter((product) => product.featured);
-
-    if (selected.length > 0) {
-      return selected.slice(0, 4);
-    }
-
-    return products.slice(0, 4);
+    return products.filter((product) => product.featured);
   }, [products]);
 
   const renderProductCards = (items) => {
@@ -192,7 +186,7 @@ export default function Home() {
               <div className="home-section-header">
                 <div>
                   <p className="home-eyebrow">კატალოგიდან</p>
-                  <h2>რჩეული პროდუქტები</h2>
+                  <h2>პროდუქცია</h2>
                 </div>
 
                 <Link to="/catalog" className="home-all-link">
