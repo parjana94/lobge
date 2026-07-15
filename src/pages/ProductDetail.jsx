@@ -204,6 +204,10 @@ export default function ProductDetail() {
     );
   }
 
+  const catalogPath = product.categoryId
+    ? `/catalog?category=${encodeURIComponent(product.categoryId)}`
+    : "/catalog";
+
   return (
     <main className="product-detail-page">
       <section className="product-detail-container">
@@ -212,7 +216,7 @@ export default function ProductDetail() {
             მთავარზე
           </Link>
 
-          <Link to="/catalog" className="product-detail-nav__link">
+          <Link to={catalogPath} className="product-detail-nav__link">
             ← კატალოგში დაბრუნება
           </Link>
         </nav>
@@ -414,7 +418,7 @@ export default function ProductDetail() {
               </div>
             </section>
 
-            <Link to="/catalog" className="product-info__catalog-link">
+            <Link to={catalogPath} className="product-info__catalog-link">
               სხვა პროდუქტების ნახვა
               <span>→</span>
             </Link>

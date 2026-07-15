@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { getProducts } from "../firebase/products";
 import { getCategories } from "../firebase/categories";
@@ -7,15 +7,18 @@ import { getCategories } from "../firebase/categories";
 import "./Catalog.css";
 
 export default function Catalog() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [selectedCategory, setSelectedCategory] = useState("all");
   const [search, setSearch] = useState("");
   const [mobileCategoryOpen, setMobileCategoryOpen] = useState(false);
+  const [copyMessage, setCopyMessage] = useState("");
+
+  const selectedCategory = searchParams.get("category") || "all";
 
   const load = async () => {
     setLoading(true);
@@ -84,13 +87,23 @@ export default function Catalog() {
   }, [products, selectedCategory, search, categoryMap]);
 
   const clearFilters = () => {
-    setSelectedCategory("all");
+    setSearchParams({});
     setSearch("");
   };
 
   const selectCategory = (categoryId) => {
-    setSelectedCategory(categoryId);
+    setSearchParams(categoryId === "all" ? {} : { category: categoryId });
     setMobileCategoryOpen(false);
+    setCopyMessage("");
+  };
+
+  const copyCategoryLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopyMessage("ლინკი დაკოპირდა");
+    } catch {
+      setCopyMessage("ლინკის კოპირება ვერ მოხერხდა");
+    }
   };
 
   const activeCategoryName =
@@ -218,6 +231,15 @@ export default function Catalog() {
               </button>
             ))}
           </div>
+
+          {selectedCategory !== "all" && (
+            <div className="catalog-category-link">
+              <button type="button" onClick={copyCategoryLink}>
+                კატეგორიის ლინკის კოპირება
+              </button>
+              {copyMessage && <span role="status">{copyMessage}</span>}
+            </div>
+          )}
         </section>
 
         {mobileCategoryOpen && (
