@@ -302,32 +302,6 @@
   box-shadow: 0 8px 16px rgba(41, 66, 111, 0.18);
 }
 
-.catalog-category-link {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.catalog-category-link button {
-  border: 0;
-  background: transparent;
-  padding: 0;
-  color: #29426f;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 800;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-
-.catalog-category-link span {
-  color: #747d8a;
-  font-size: 11px;
-  font-weight: 600;
-}
-
 .catalog-error {
   display: flex;
   justify-content: space-between;
@@ -669,10 +643,6 @@
     color: #1d2430;
     font: inherit;
     cursor: pointer;
-  }
-
-  .catalog-category-link {
-    flex-wrap: wrap;
   }
 
   .catalog-mobile-category-trigger span {

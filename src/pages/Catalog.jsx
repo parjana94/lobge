@@ -16,7 +16,6 @@ export default function Catalog() {
 
   const [search, setSearch] = useState("");
   const [mobileCategoryOpen, setMobileCategoryOpen] = useState(false);
-  const [copyMessage, setCopyMessage] = useState("");
 
   const selectedCategory = searchParams.get("category") || "all";
 
@@ -94,16 +93,6 @@ export default function Catalog() {
   const selectCategory = (categoryId) => {
     setSearchParams(categoryId === "all" ? {} : { category: categoryId });
     setMobileCategoryOpen(false);
-    setCopyMessage("");
-  };
-
-  const copyCategoryLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopyMessage("ლინკი დაკოპირდა");
-    } catch {
-      setCopyMessage("ლინკის კოპირება ვერ მოხერხდა");
-    }
   };
 
   const activeCategoryName =
@@ -231,15 +220,6 @@ export default function Catalog() {
               </button>
             ))}
           </div>
-
-          {selectedCategory !== "all" && (
-            <div className="catalog-category-link">
-              <button type="button" onClick={copyCategoryLink}>
-                კატეგორიის ლინკის კოპირება
-              </button>
-              {copyMessage && <span role="status">{copyMessage}</span>}
-            </div>
-          )}
         </section>
 
         {mobileCategoryOpen && (
