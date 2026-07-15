@@ -145,6 +145,10 @@ export default function ProductDetail() {
     shareText
   )}`;
 
+  const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+    productUrl
+  )}`;
+
   const handleMessengerShare = async () => {
     const shareData = {
       title: product?.name || "პროდუქტი",
@@ -415,6 +419,15 @@ export default function ProductDetail() {
                 >
                   Messenger
                 </button>
+
+                <a
+                  href={facebookShareUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="product-share-button product-share-button--facebook"
+                >
+                  Facebook-ზე გაზიარება
+                </a>
               </div>
             </section>
 

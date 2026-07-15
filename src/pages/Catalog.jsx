@@ -100,6 +100,13 @@ export default function Catalog() {
       ? "ყველა კატეგორია"
       : getCategoryName(selectedCategory);
 
+  const categoryFacebookShareUrl =
+    selectedCategory !== "all" && typeof window !== "undefined"
+      ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+          window.location.href
+        )}`
+      : "";
+
   return (
     <main className="catalog-page">
       <section className="catalog-container">
@@ -220,6 +227,17 @@ export default function Catalog() {
               </button>
             ))}
           </div>
+
+          {categoryFacebookShareUrl && (
+            <a
+              href={categoryFacebookShareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="catalog-category-facebook-share"
+            >
+              კატეგორიის Facebook-ზე გაზიარება
+            </a>
+          )}
         </section>
 
         {mobileCategoryOpen && (

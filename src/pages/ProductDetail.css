@@ -352,7 +352,7 @@
 
 .product-info__share-buttons {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -406,6 +406,16 @@
 
 .product-share-button--messenger:hover {
   background: #e4edff;
+}
+
+.product-share-button--facebook {
+  border-color: #c9d1e2;
+  background: #f4f6fa;
+  color: #29426f;
+}
+
+.product-share-button--facebook:hover {
+  background: #e8edf6;
 }
 
 .product-info__catalog-link {
