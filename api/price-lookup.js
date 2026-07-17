@@ -213,9 +213,20 @@ export default async function handler(request, response) {
     return sendJson(response, 400, { error: "Invalid model" });
   }
 
+  const authorization = request.headers.authorization || "";
+  if (!authorization) {
+    return sendJson(response, 401, {
+      code: "missing_token",
+      error: "Authentication token is required",
+    });
+  }
+
   const token = getBearerToken(request);
   if (!token) {
-    return sendJson(response, 401, { error: "Authentication required" });
+    return sendJson(response, 401, {
+      code: "invalid_token",
+      error: "Invalid authentication token",
+    });
   }
 
   const firebaseApiKey = process.env.VITE_API_KEY;
@@ -227,7 +238,10 @@ export default async function handler(request, response) {
   try {
     const firebaseUser = await verifyFirebaseUser(token, firebaseApiKey);
     if (!firebaseUser?.localId || firebaseUser.disabled) {
-      return sendJson(response, 401, { error: "Invalid or expired session" });
+      return sendJson(response, 401, {
+        code: "invalid_token",
+        error: "Invalid or expired authentication token",
+      });
     }
 
     const role = await getFirebaseRole({
@@ -237,7 +251,10 @@ export default async function handler(request, response) {
     });
 
     if (role !== "admin") {
-      return sendJson(response, 403, { error: "Admin access required" });
+      return sendJson(response, 403, {
+        code: "not_admin",
+        error: "Admin access required",
+      });
     }
 
     const priceDatabase = getPriceDatabaseConfig();

@@ -196,13 +196,32 @@ export default function ProductDetail() {
     event.preventDefault();
 
     const model = priceModel.trim();
-    if (!isAdmin || !model || priceLookupStatus === "loading") return;
+    if (!model || priceLookupStatus === "loading") return;
+
+    if (!user) {
+      setPriceResults([]);
+      setPriceLookupStatus("session-ended");
+      return;
+    }
+
+    if (role !== "admin") {
+      setPriceResults([]);
+      setPriceLookupStatus("unauthorized");
+      return;
+    }
 
     setPriceLookupStatus("loading");
     setPriceResults([]);
 
+    let token;
     try {
-      const token = await user.getIdToken();
+      token = await user.getIdToken(true);
+    } catch {
+      setPriceLookupStatus("session-ended");
+      return;
+    }
+
+    try {
       const response = await fetch("/api/price-lookup", {
         method: "POST",
         headers: {
@@ -212,7 +231,12 @@ export default function ProductDetail() {
         body: JSON.stringify({ model }),
       });
 
-      if (response.status === 401 || response.status === 403) {
+      if (response.status === 401) {
+        setPriceLookupStatus("session-ended");
+        return;
+      }
+
+      if (response.status === 403) {
         setPriceLookupStatus("unauthorized");
         return;
       }
@@ -540,7 +564,13 @@ export default function ProductDetail() {
 
                 {priceLookupStatus === "unauthorized" && (
                   <p className="product-price-lookup__message product-price-lookup__message--error">
-                    სესია დასრულდა ან წვდომა არ გაქვს. თავიდან გაიარე ავტორიზაცია.
+                    ადმინისტრატორის წვდომა არ გაქვს.
+                  </p>
+                )}
+
+                {priceLookupStatus === "session-ended" && (
+                  <p className="product-price-lookup__message product-price-lookup__message--error">
+                    სესია დასრულდა. თავიდან გაიარე ავტორიზაცია.
                   </p>
                 )}
 
