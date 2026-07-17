@@ -31,40 +31,45 @@ const parseBody = (body) => {
 // Firestore REST applies the project's rules while reading the caller's role.
 // This requires the same own-user-document read that AuthContext already uses.
 const verifyFirebaseUser = async (token, apiKey) => {
-  const response = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(
-      apiKey
-    )}`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ idToken: token }),
-    }
-  );
+  try {
+    const response = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(
+        apiKey
+      )}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken: token }),
+      }
+    );
 
-  if (!response.ok) return null;
+    if (!response.ok) return null;
 
-  const payload = await response.json();
-  return payload.users?.[0] || null;
+    const payload = await response.json();
+    return payload.users?.[0] || null;
+  } catch {
+    return null;
+  }
 };
 
 const getFirebaseRole = async ({ projectId, uid, token }) => {
-  const response = await fetch(
-    `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
-      projectId
-    )}/databases/(default)/documents/users/${encodeURIComponent(uid)}`,
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    }
-  );
+  try {
+    const response = await fetch(
+      `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
+        projectId
+      )}/databases/(default)/documents/users/${encodeURIComponent(uid)}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
 
-  if (!response.ok) return null;
+    if (!response.ok) return null;
 
-  const document = await response.json();
-  return document.fields?.role?.stringValue || null;
+    const document = await response.json();
+    return document.fields?.role?.stringValue || null;
+  } catch {
+    return null;
+  }
 };
 
 const getPriceDatabaseConfig = () => {
@@ -232,7 +237,10 @@ export default async function handler(request, response) {
   const firebaseApiKey = process.env.VITE_API_KEY;
   const firebaseProjectId = process.env.VITE_PROJECT_ID;
   if (!firebaseApiKey || !firebaseProjectId) {
-    return sendJson(response, 500, { error: "Server authentication is not configured" });
+    return sendJson(response, 500, {
+      code: "missing_firebase_env",
+      error: "Firebase server environment is not configured",
+    });
   }
 
   try {
@@ -259,7 +267,10 @@ export default async function handler(request, response) {
 
     const priceDatabase = getPriceDatabaseConfig();
     if (!priceDatabase) {
-      return sendJson(response, 500, { error: "Price database is not configured" });
+      return sendJson(response, 500, {
+        code: "price_db_not_configured",
+        error: "Price database is not configured",
+      });
     }
 
     let lookup = await queryByModelKey(priceDatabase, normalizedModel);
