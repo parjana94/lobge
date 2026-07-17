@@ -29,6 +29,17 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [lightbox, setLightbox] = useState(false);
+  const [priceModel, setPriceModel] = useState("");
+  const [priceResults, setPriceResults] = useState([]);
+  const [priceLookupStatus, setPriceLookupStatus] = useState("idle");
+
+  useEffect(() => {
+    if (isAdmin) return;
+
+    setPriceModel("");
+    setPriceResults([]);
+    setPriceLookupStatus("idle");
+  }, [isAdmin]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -179,6 +190,57 @@ export default function ProductDetail() {
     )}`;
 
     window.open(messengerShareUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const handlePriceLookup = async (event) => {
+    event.preventDefault();
+
+    const model = priceModel.trim();
+    if (!isAdmin || !model || priceLookupStatus === "loading") return;
+
+    setPriceLookupStatus("loading");
+    setPriceResults([]);
+
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch("/api/price-lookup", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ model }),
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        setPriceLookupStatus("unauthorized");
+        return;
+      }
+
+      if (!response.ok) {
+        setPriceLookupStatus("error");
+        return;
+      }
+
+      const payload = await response.json();
+      const results = Array.isArray(payload.results) ? payload.results : [];
+
+      setPriceResults(results);
+      setPriceLookupStatus(results.length ? "success" : "not-found");
+    } catch {
+      setPriceLookupStatus("error");
+    }
+  };
+
+  const formatPrice = (value) => {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return "—";
+
+    return new Intl.NumberFormat("ka-GE", {
+      style: "currency",
+      currency: "GEL",
+      minimumFractionDigits: 2,
+    }).format(number);
   };
 
   if (loading) {
@@ -448,20 +510,72 @@ export default function ProductDetail() {
                 <p className="product-price-lookup__privacy">მხოლოდ ადმინისტრატორისთვის</p>
                 <h2 id="product-price-lookup-title">ფასის მოძებნა</h2>
 
-                <div className="product-price-lookup__controls">
+                <form
+                  className="product-price-lookup__controls"
+                  onSubmit={handlePriceLookup}
+                >
                   <input
                     type="text"
                     placeholder="ჩაწერე მოდელი"
                     aria-label="მოდელი"
+                    value={priceModel}
+                    onChange={(event) => setPriceModel(event.target.value)}
+                    maxLength={100}
+                    autoComplete="off"
+                    disabled={priceLookupStatus === "loading"}
                   />
-                  <button type="button" disabled>
-                    ძებნა
+                  <button
+                    type="submit"
+                    disabled={
+                      !priceModel.trim() || priceLookupStatus === "loading"
+                    }
+                  >
+                    {priceLookupStatus === "loading" ? "იძებნება..." : "ძებნა"}
                   </button>
-                </div>
+                </form>
 
-                <p className="product-price-lookup__message">
-                  ფასების ბაზასთან დაკავშირება შემდეგ ეტაპზე დაემატება.
-                </p>
+                {priceLookupStatus === "not-found" && (
+                  <p className="product-price-lookup__message">ვერ მოიძებნა</p>
+                )}
+
+                {priceLookupStatus === "unauthorized" && (
+                  <p className="product-price-lookup__message product-price-lookup__message--error">
+                    სესია დასრულდა ან წვდომა არ გაქვს. თავიდან გაიარე ავტორიზაცია.
+                  </p>
+                )}
+
+                {priceLookupStatus === "error" && (
+                  <p className="product-price-lookup__message product-price-lookup__message--error">
+                    ფასის მოძებნა ვერ მოხერხდა. სცადე მოგვიანებით.
+                  </p>
+                )}
+
+                {priceLookupStatus === "success" && (
+                  <div className="product-price-lookup__table-wrap">
+                    <table className="product-price-lookup__table">
+                      <thead>
+                        <tr>
+                          <th>მოდელი</th>
+                          <th>შესყიდვა</th>
+                          <th>გაყიდვა</th>
+                          <th>მარაგი</th>
+                          <th>წყარო</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {priceResults.map((result, index) => (
+                          <tr key={`${result.model}-${result.source_file || index}`}>
+                            <td>{result.model || "—"}</td>
+                            <td>{formatPrice(result.purchase_price)}</td>
+                            <td>{formatPrice(result.selling_price)}</td>
+                            <td>{result.stock || "—"}</td>
+                            <td>{result.source_file || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </section>
             )}
 
