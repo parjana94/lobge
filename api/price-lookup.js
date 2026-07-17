@@ -3,6 +3,8 @@ const MAX_RESULTS = 20;
 const DEFAULT_MAX_FALLBACK_SCAN = 10000;
 const FALLBACK_PAGE_SIZE = 1000;
 const SELLING_PRICE_MULTIPLIER = 1.8;
+const LOOKUP_FIELDS =
+  "model,model_key,search_text,purchase_price,retail_price,price,base_price,stock,source_file";
 
 const normalizeModel = (value) =>
   String(value || "")
@@ -110,10 +112,8 @@ const querySupabase = async (config, query) => {
 };
 
 const queryByModelKey = async (config, normalizedModel) => {
-  const fields =
-    "model,model_key,purchase_price,retail_price,price,base_price,stock,source_file";
   const query = new URLSearchParams({
-    select: fields,
+    select: LOOKUP_FIELDS,
     model_key: `eq.${normalizedModel}`,
     limit: String(MAX_RESULTS),
   });
@@ -127,9 +127,23 @@ const modelKeyIsUnavailable = (result) => {
   return errorText.includes("model_key") && result.status >= 400;
 };
 
-const queryWithNormalizedFallback = async (config, normalizedModel) => {
-  const fields =
-    "model,purchase_price,retail_price,price,base_price,stock,source_file";
+const safeSearchValue = (value) =>
+  String(value || "")
+    .replace(/[^\p{L}\p{N}\s-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const queryByColumn = async ({ config, column, operator, value }) => {
+  const query = new URLSearchParams({
+    select: LOOKUP_FIELDS,
+    [column]: `${operator}.${value}`,
+    limit: String(MAX_RESULTS),
+  });
+
+  return querySupabase(config, query.toString());
+};
+
+const queryWithFallbackScan = async (config, normalizedModel) => {
   const matches = [];
 
   for (
@@ -142,7 +156,7 @@ const queryWithNormalizedFallback = async (config, normalizedModel) => {
       config.maxFallbackScan - offset
     );
     const query = new URLSearchParams({
-      select: fields,
+      select: LOOKUP_FIELDS,
       limit: String(limit),
       offset: String(offset),
     });
@@ -151,9 +165,12 @@ const queryWithNormalizedFallback = async (config, normalizedModel) => {
     if (!result.ok || !Array.isArray(result.payload)) return result;
 
     matches.push(
-      ...result.payload.filter(
-        (row) => normalizeModel(row.model) === normalizedModel
-      )
+      ...result.payload.filter((row) => {
+        const normalizedRowText = normalizeModel(
+          [row.model, row.model_key, row.search_text].filter(Boolean).join(" ")
+        );
+        return normalizedRowText.includes(normalizedModel);
+      })
     );
 
     if (result.payload.length < limit) break;
@@ -186,9 +203,11 @@ const calculateSellingPrice = (row) => {
 const sanitizeResult = (row) => ({
   model: String(row.model || ""),
   purchase_price: toMoney(row.purchase_price),
+  retail_price: toMoney(row.retail_price),
   selling_price: calculateSellingPrice(row),
   stock: row.stock === null || row.stock === undefined ? null : String(row.stock),
   source_file: row.source_file ? String(row.source_file) : null,
+  supplier: row.supplier ? String(row.supplier) : null,
 });
 
 export default async function handler(request, response) {
@@ -273,24 +292,110 @@ export default async function handler(request, response) {
       });
     }
 
-    let lookup = await queryByModelKey(priceDatabase, normalizedModel);
-    if (modelKeyIsUnavailable(lookup)) {
-      lookup = await queryWithNormalizedFallback(
-        priceDatabase,
-        normalizedModel
-      );
+    const submittedSearch = safeSearchValue(rawModel);
+    const normalizedSearch = safeSearchValue(normalizedModel);
+    const attempts = [
+      {
+        matchedBy: "model_key_exact",
+        run: () => queryByModelKey(priceDatabase, normalizedModel),
+        canSkipMissingColumn: true,
+      },
+      {
+        matchedBy: "model_exact",
+        run: () =>
+          queryByColumn({
+            config: priceDatabase,
+            column: "model",
+            operator: "eq",
+            value: submittedSearch,
+          }),
+      },
+      {
+        matchedBy: "model_ilike_submitted",
+        run: () =>
+          queryByColumn({
+            config: priceDatabase,
+            column: "model",
+            operator: "ilike",
+            value: `*${submittedSearch}*`,
+          }),
+      },
+      {
+        matchedBy: "model_ilike_normalized",
+        run: () =>
+          queryByColumn({
+            config: priceDatabase,
+            column: "model",
+            operator: "ilike",
+            value: `*${normalizedSearch}*`,
+          }),
+      },
+      {
+        matchedBy: "search_text_ilike_submitted",
+        run: () =>
+          queryByColumn({
+            config: priceDatabase,
+            column: "search_text",
+            operator: "ilike",
+            value: `*${submittedSearch}*`,
+          }),
+      },
+      {
+        matchedBy: "search_text_ilike_normalized",
+        run: () =>
+          queryByColumn({
+            config: priceDatabase,
+            column: "search_text",
+            operator: "ilike",
+            value: `*${normalizedSearch}*`,
+          }),
+      },
+    ];
+
+    let matchedBy = "none";
+    let lookup = null;
+
+    for (const attempt of attempts) {
+      const attemptResult = await attempt.run();
+
+      if (!attemptResult.ok) {
+        if (
+          attempt.canSkipMissingColumn &&
+          modelKeyIsUnavailable(attemptResult)
+        ) {
+          continue;
+        }
+        return sendJson(response, 502, {
+          error: "Price database request failed",
+        });
+      }
+
+      if (Array.isArray(attemptResult.payload) && attemptResult.payload.length) {
+        matchedBy = attempt.matchedBy;
+        lookup = attemptResult;
+        break;
+      }
+    }
+
+    if (!lookup) {
+      matchedBy = "fallback_scan";
+      lookup = await queryWithFallbackScan(priceDatabase, normalizedModel);
     }
 
     if (!lookup.ok || !Array.isArray(lookup.payload)) {
       return sendJson(response, 502, { error: "Price database request failed" });
     }
 
-    const results = lookup.payload
-      .filter((row) => normalizeModel(row.model) === normalizedModel)
-      .slice(0, MAX_RESULTS)
-      .map(sanitizeResult);
+    const results = lookup.payload.slice(0, MAX_RESULTS).map(sanitizeResult);
+    const resultCount = results.length;
 
-    return sendJson(response, 200, { results });
+    return sendJson(response, 200, {
+      results,
+      searchedModel: rawModel,
+      normalizedModel,
+      matchedBy: resultCount ? matchedBy : "none",
+      resultCount,
+    });
   } catch {
     return sendJson(response, 500, { error: "Unable to complete price lookup" });
   }
