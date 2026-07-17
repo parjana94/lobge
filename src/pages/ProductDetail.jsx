@@ -1,6 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { Link, useParams } from "react-router-dom";
 
+import { AuthContext } from "../context/AuthContext";
 import { getProduct, getProducts } from "../firebase/products";
 import { getCategories } from "../firebase/categories";
 
@@ -11,6 +18,8 @@ const PHONE_DISPLAY = "+995 555 77 05 99";
 
 export default function ProductDetail() {
   const { id } = useParams();
+  const { user, role } = useContext(AuthContext);
+  const isAdmin = Boolean(user && role === "admin");
 
   const [product, setProduct] = useState(null);
   const [related, setRelated] = useState([]);
@@ -430,6 +439,31 @@ export default function ProductDetail() {
                 </a>
               </div>
             </section>
+
+            {isAdmin && (
+              <section
+                className="product-price-lookup"
+                aria-labelledby="product-price-lookup-title"
+              >
+                <p className="product-price-lookup__privacy">მხოლოდ ადმინისტრატორისთვის</p>
+                <h2 id="product-price-lookup-title">ფასის მოძებნა</h2>
+
+                <div className="product-price-lookup__controls">
+                  <input
+                    type="text"
+                    placeholder="ჩაწერე მოდელი"
+                    aria-label="მოდელი"
+                  />
+                  <button type="button" disabled>
+                    ძებნა
+                  </button>
+                </div>
+
+                <p className="product-price-lookup__message">
+                  ფასების ბაზასთან დაკავშირება შემდეგ ეტაპზე დაემატება.
+                </p>
+              </section>
+            )}
 
             <Link to={catalogPath} className="product-info__catalog-link">
               სხვა პროდუქტების ნახვა
