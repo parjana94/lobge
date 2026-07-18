@@ -185,8 +185,8 @@ const toMoney = (value) => {
   return Number.isFinite(number) ? number : null;
 };
 
-const calculateSellingPrice = (row) => {
-  const prices = [
+const calculatePurchasePrice = (row) => {
+  const sourcePrices = [
     row.base_price,
     row.purchase_price,
     row.retail_price,
@@ -195,20 +195,28 @@ const calculateSellingPrice = (row) => {
     .map(toMoney)
     .filter((value) => value !== null && value > 0);
 
-  if (!prices.length) return null;
-  // Matches the confirmed price-app rule: lowest positive price × 1.8.
-  return Math.round(Math.min(...prices) * SELLING_PRICE_MULTIPLIER * 100) / 100;
+  if (!sourcePrices.length) return null;
+  // The external price app treats the lowest positive source value as cost.
+  return Math.min(...sourcePrices);
 };
 
-const sanitizeResult = (row) => ({
-  model: String(row.model || ""),
-  purchase_price: toMoney(row.purchase_price),
-  retail_price: toMoney(row.retail_price),
-  selling_price: calculateSellingPrice(row),
-  stock: row.stock === null || row.stock === undefined ? null : String(row.stock),
-  source_file: row.source_file ? String(row.source_file) : null,
-  supplier: row.supplier ? String(row.supplier) : null,
-});
+const sanitizeResult = (row) => {
+  const purchasePrice = calculatePurchasePrice(row);
+  const sellingPrice =
+    purchasePrice === null
+      ? null
+      : Math.round(purchasePrice * SELLING_PRICE_MULTIPLIER * 100) / 100;
+
+  return {
+    model: String(row.model || ""),
+    purchase_price: purchasePrice,
+    selling_price: sellingPrice,
+    stock:
+      row.stock === null || row.stock === undefined ? null : String(row.stock),
+    source_file: row.source_file ? String(row.source_file) : null,
+    supplier: row.supplier ? String(row.supplier) : null,
+  };
+};
 
 export default async function handler(request, response) {
   response.setHeader("Cache-Control", "no-store");
