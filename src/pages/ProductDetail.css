@@ -1,16 +1,24 @@
 @import url("https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;500;600;700;800&family=Noto+Serif+Georgian:wght@600;700&display=swap");
 
 .product-detail-page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: 100vh;
+  overflow-x: hidden;
   background: #f7f5f0;
+  box-sizing: border-box;
   color: #1d2430;
   font-family: "Noto Sans Georgian", Arial, sans-serif;
 }
 
 .product-detail-container {
   width: min(1280px, calc(100% - 40px));
+  max-width: 100%;
+  min-width: 0;
   margin: 0 auto;
   padding: 34px 0 78px;
+  box-sizing: border-box;
 }
 
 .product-detail-nav {
@@ -43,6 +51,9 @@
 
 .product-detail-hero {
   display: grid;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   grid-template-columns: minmax(0, 1.05fr) minmax(390px, 0.95fr);
   gap: 30px;
   align-items: start;
@@ -56,7 +67,10 @@
 }
 
 .product-gallery {
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
+  box-sizing: border-box;
 }
 
 .product-gallery__main-wrap {
@@ -128,6 +142,7 @@
   position: relative;
   z-index: 1;
   width: 100%;
+  max-width: 100%;
   height: 470px;
   object-fit: contain;
   transition: transform 0.35s ease;
@@ -199,6 +214,9 @@
 .product-info {
   position: sticky;
   top: 22px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow: hidden;
   border: 1px solid #e6e0d7;
   border-radius: 26px;
@@ -209,6 +227,7 @@
     ),
     #fdfcf9;
   padding: clamp(22px, 3vw, 30px);
+  box-sizing: border-box;
 }
 
 .product-info__eyebrow {
@@ -352,12 +371,18 @@
 
 .product-info__share-buttons {
   display: grid;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
 .product-share-button {
   display: inline-flex;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: 38px;
   align-items: center;
   justify-content: center;
@@ -365,6 +390,7 @@
   border-radius: 11px;
   background: #ffffff;
   padding: 8px 6px;
+  box-sizing: border-box;
   color: #374151;
   font: inherit;
   font-size: 11px;
@@ -419,11 +445,15 @@
 }
 
 .product-price-lookup {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   margin-top: 18px;
   border: 1px solid #d9e2f4;
   border-radius: 14px;
   background: #f6f8fc;
   padding: 14px;
+  box-sizing: border-box;
 }
 
 .product-price-lookup__privacy {
@@ -566,7 +596,11 @@
 }
 
 .product-related {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   margin: 0;
+  box-sizing: border-box;
 }
 
 .product-related__header {
@@ -828,8 +862,7 @@
 
 @media (max-width: 768px) {
   .product-detail-hero {
-    display: flex;
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 
   .product-detail-left-column {
@@ -846,6 +879,41 @@
 
   .product-related {
     order: 3;
+  }
+
+  .product-detail-container,
+  .product-detail-left-column,
+  .product-gallery,
+  .product-info,
+  .product-info__card,
+  .product-info__share-buttons,
+  .product-share,
+  .product-price-lookup,
+  .product-related,
+  .related-products {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .product-gallery__main-wrap,
+  .product-gallery__main-button,
+  .product-gallery__main-frame,
+  .product-contact-call,
+  .product-info__catalog-link,
+  .product-price-lookup__controls,
+  .product-price-lookup__table-wrap,
+  .product-related__grid,
+  .product-related-card {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .product-gallery img,
+  .product-related img {
+    max-width: 100%;
   }
 }
 
@@ -955,5 +1023,27 @@
 
   .product-lightbox__nav--next {
     right: 3px;
+  }
+}
+
+@media (max-width: 480px) {
+  .product-detail-container {
+    width: calc(100% - 24px);
+  }
+
+  .product-price-lookup__controls {
+    grid-template-columns: 1fr;
+  }
+
+  .product-price-lookup__controls button {
+    width: 100%;
+  }
+
+  .product-contact-call {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .product-contact-call__arrow {
+    display: none;
   }
 }
